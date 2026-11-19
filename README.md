@@ -182,7 +182,7 @@ qdl --serial=0AA94EFD prog_firehose_ddr.elf rawprogram*.xml patch*.xml
 
 Other options that commonly matter when flashing:
 
-- `--storage=<emmc|nand|nvme|spinor|ufs>` selects the target storage type
+- `--storage=<emmc|nand|nvme|sata|spinor|ufs>` selects the target storage type
   passed to the programmer, and `--slot=N` the storage slot on targets with
   several devices of the same type.
 - `--include=DIR` adds a folder to search for the images referenced by the

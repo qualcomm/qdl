@@ -45,7 +45,7 @@ void print_usage(FILE *out)
 	usage_opt(out, " ", "-v, --version", "\t\t\tPrint the current version and exit");
 	usage_opt(out, " ", "-n, --dry-run", "\t\t\tDry run execution, no device reading or flashing");
 	usage_opt(out, " ", "-f, --allow-missing", "\t\tAllow skipping of missing files during flashing");
-	usage_opt(out, " ", "-s, --storage=T", "\t\tSet target storage type T: <emmc|nand|nvme|spinor|ufs>");
+	usage_opt(out, " ", "-s, --storage=T", "\t\tSet target storage type T: <emmc|nand|nvme|sata|spinor|ufs>");
 	usage_opt(out, " ", "-l, --finalize-provisioning", "\tProvision the target storage");
 	usage_opt(out, " ", "-i, --include=T", "\t\tSet an optional folder T to search for files");
 	usage_opt(out, " ", "-S, --serial=T",
