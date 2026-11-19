@@ -69,6 +69,7 @@ enum qdl_storage_type {
 	QDL_STORAGE_UFS,
 	QDL_STORAGE_NVME,
 	QDL_STORAGE_SPINOR,
+	QDL_STORAGE_SATA,
 };
 
 enum qdl_skipblock_mode {

@@ -122,6 +122,7 @@ static const char * const storage_types[] = {
 	[QDL_STORAGE_NVME] = "nvme",
 	[QDL_STORAGE_SPINOR] = "spinor",
 	[QDL_STORAGE_UFS] = "ufs",
+	[QDL_STORAGE_SATA] = "sata",
 };
 
 const char *encode_storage_type(enum qdl_storage_type storage)

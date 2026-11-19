@@ -21,7 +21,7 @@
 #   QDL_HIL_BUILD     Build to flash. Auto-detected: a directory uses classic
 #                     flashing (prog_firehose_*.elf + rawprogram*.xml +
 #                     patch*.xml); a file (.json/.xml/.zip) uses "qdl flash".
-#   QDL_HIL_STORAGE   Target storage type: emmc|nand|nvme|spinor|ufs.
+#   QDL_HIL_STORAGE   Target storage type: emmc|nand|nvme|sata|spinor|ufs.
 #
 # Optional environment:
 #   QDL_HIL_PROGRAMMER  Firehose programmer .elf (needed by the read/write/
