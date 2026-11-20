@@ -1090,8 +1090,108 @@ static int firehose_program_skipblock(struct qdl_device *qdl,
 	return 0;
 }
 
+struct firehose_getsize_args {
+	size_t sector_size;
+	size_t num_sectors;
+};
+
+static int firehose_getstorageinfo(struct qdl_device *qdl, int lun,
+				   struct firehose_getsize_args *args);
+
+/* Size in bytes of each LUN of the configured storage; 0 if unknown */
+static uint64_t firehose_lun_sizes[32];
+
+/*
+ * firehose_query_lun_sizes() - query the size of every LUN programmed after
+ * @configure, for firehose_check_lun_bounds()
+ *
+ * This is done up front, once per LUN, right after the storage has been
+ * configured, rather than in the middle of flashing.
+ *
+ * With VIP, every command sent must be in the signed digest table, so no
+ * extra commands may be sent; the simulator is skipped too, as it is what
+ * generates those tables. The sizes are then left unknown, which disables
+ * the check.
+ */
+static void firehose_query_lun_sizes(struct qdl_device *qdl,
+				     struct list_head *ops,
+				     struct firehose_op *configure)
+{
+	struct firehose_getsize_args args;
+	bool queried[ARRAY_SIZE(firehose_lun_sizes)] = {};
+	struct firehose_op *op = configure;
+	int lun;
+
+	memset(firehose_lun_sizes, 0, sizeof(firehose_lun_sizes));
+
+	if (qdl->vip_data.state != VIP_DISABLED || qdl->dev_type == QDL_DEVICE_SIM)
+		return;
+
+	list_for_each_entry_continue(op, ops, node) {
+		if (op->type == FIREHOSE_OP_CONFIGURE)
+			break;
+		if (op->type != FIREHOSE_OP_PROGRAM || !op->filename)
+			continue;
+
+		lun = op->partition;
+		if (lun < 0 || (size_t)lun >= ARRAY_SIZE(firehose_lun_sizes) ||
+		    queried[lun])
+			continue;
+		queried[lun] = true;
+
+		memset(&args, 0, sizeof(args));
+		if (firehose_getstorageinfo(qdl, lun, &args) >= 0 &&
+		    args.sector_size && args.num_sectors)
+			firehose_lun_sizes[lun] = (uint64_t)args.sector_size *
+						  args.num_sectors;
+	}
+}
+
+/*
+ * firehose_check_lun_bounds() - warn if @program runs off the end of its LUN
+ *
+ * Program entries commonly describe one slice of a larger image (via
+ * file_sector_offset), so the image being bigger than num_partition_sectors
+ * is expected. What is actually wrong is writing past the end of the LUN, so
+ * check for that instead, using the LUN size reported by the programmer.
+ *
+ * The check is skipped if the LUN size is unknown (see
+ * firehose_query_lun_sizes()), or if start_sector is not a plain number (e.g.
+ * "NUM_DISK_SECTORS-5.").
+ */
+static void firehose_check_lun_bounds(struct firehose_op *program,
+				      unsigned int num_sectors,
+				      unsigned int sector_size)
+{
+	unsigned long long start;
+	uint64_t lun_size;
+	uint64_t end;
+	char *endp;
+	int lun = program->partition;
+
+	if (lun < 0 || (size_t)lun >= ARRAY_SIZE(firehose_lun_sizes))
+		return;
+
+	lun_size = firehose_lun_sizes[lun];
+	if (!lun_size)
+		return;
+
+	errno = 0;
+	start = strtoull(program->start_sector, &endp, 0);
+	if (errno || endp == program->start_sector || *endp)
+		return;
+
+	end = ((uint64_t)start + num_sectors) * sector_size;
+	if (end > lun_size)
+		ux_warnx("%s: %s runs off the end of LUN %d (ends at byte %llu, LUN is %llu bytes)",
+			 program->filename, program->label, lun,
+			 (unsigned long long)end, (unsigned long long)lun_size);
+}
+
 static int firehose_program(struct qdl_device *qdl, struct firehose_op *program)
 {
+	uint64_t file_size;
+	uint64_t file_offset;
 	unsigned int num_sectors;
 	unsigned int sector_size;
 	unsigned int zlp_timeout = 10000;
@@ -1132,15 +1232,17 @@ static int firehose_program(struct qdl_device *qdl, struct firehose_op *program)
 	}
 
 	if (!program->sparse) {
-		num_sectors = (qdl_file_getsize(&file) + sector_size - 1) / sector_size;
+		/* Only the part of the image from file_sector_offset onwards is written */
+		file_size = qdl_file_getsize(&file);
+		file_offset = (uint64_t)program->file_offset * sector_size;
+		file_size = file_size > file_offset ? file_size - file_offset : 0;
+		num_sectors = (file_size + sector_size - 1) / sector_size;
 
-		if (program->num_sectors && num_sectors > program->num_sectors) {
-			ux_warnx("%s too big for %s, truncated to %u bytes",
-				 program->filename, program->label,
-				 program->num_sectors * sector_size);
+		if (program->num_sectors && num_sectors > program->num_sectors)
 			num_sectors = program->num_sectors;
-		}
 	}
+
+	firehose_check_lun_bounds(program, num_sectors, sector_size);
 
 	buf = malloc(qdl->max_payload_size);
 	if (!buf) {
@@ -1896,6 +1998,8 @@ static int firehose_execute_ops(struct qdl_device *qdl, struct list_head *ops)
 			if (ret)
 				return ret;
 
+			firehose_query_lun_sizes(qdl, ops, op);
+
 			/* Update the number of patches for this storage device */
 			patch_count = 0;
 			patch_idx = 0;
@@ -2046,11 +2150,6 @@ int firehose_open(struct qdl_device *qdl, enum qdl_storage_type storage)
 {
 	return firehose_detect_and_configure(qdl, false, storage, 5);
 }
-
-struct firehose_getsize_args {
-	size_t sector_size;
-	size_t num_sectors;
-};
 
 /*
  * The programmer answers <getstorageinfo> with the storage geometry encoded as
