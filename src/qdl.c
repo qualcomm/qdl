@@ -891,6 +891,8 @@ static int qdl_flash(int argc, char **argv)
 	if (ret)
 		goto out_cleanup;
 
+	qdl_override_zlp_aware_host(qdl, opts.zlp_aware_host);
+
 	ret = sahara_run(qdl, sahara_images, NULL, NULL);
 	if (ret < 0)
 		goto out_cleanup;

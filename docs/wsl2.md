@@ -38,7 +38,8 @@ usbipd.exe attach --wsl --busid <BUSID>
 ```
 
 Once attached, the device appears in WSL (check with `lsusb` for a `05c6:`
-device) and QDL can flash it as usual.
+device). If flashing through the libusb backend over usbipd-win stalls on
+explicit zero-length OUT packets, run QDL with `--no-zlp-aware-host`.
 
 ## Re-attaching after EDL re-enumeration
 

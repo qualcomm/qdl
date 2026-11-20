@@ -84,6 +84,7 @@ struct qdl_device {
 	enum qdl_storage_type current_storage_type;
 	enum qdl_skipblock_mode skipblock_mode;
 	unsigned int slot;
+	bool zlp_aware_host;
 
 	int (*open)(struct qdl_device *qdl, const char *serial);
 	int (*read)(struct qdl_device *qdl, void *buf, size_t len, unsigned int timeout);
@@ -126,12 +127,19 @@ int qdl_read(struct qdl_device *qdl, void *buf, size_t len, unsigned int timeout
 int qdl_push_back(struct qdl_device *qdl, const void *buf, size_t len);
 int qdl_write(struct qdl_device *qdl, const void *buf, size_t len, unsigned int timeout);
 void qdl_set_out_chunk_size(struct qdl_device *qdl, long size);
+void qdl_override_zlp_aware_host(struct qdl_device *qdl, bool zlp_aware_host);
 int qdl_vip_transfer_enable(struct qdl_device *qdl, const char *vip_table_path);
+
+bool usb_supports_zlp_aware_host_override(void);
+bool qud_supports_zlp_aware_host_override(void);
+bool sim_supports_zlp_aware_host_override(void);
 
 struct qdl_device *usb_init(void);
 struct qdl_device *sim_init(void);
 struct qdl_device *qud_init(void);
 struct qdl_device *auto_init(void);
+bool auto_supports_zlp_aware_host_override(struct qdl_device *qdl);
+void auto_override_zlp_aware_host(struct qdl_device *qdl, bool zlp_aware_host);
 
 /*
  * usb_open_once() - single libusb scan-and-open pass; shared between

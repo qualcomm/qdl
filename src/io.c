@@ -38,6 +38,23 @@ void qdl_set_out_chunk_size(struct qdl_device *qdl, long size)
 	qdl->set_out_chunk_size(qdl, size);
 }
 
+void qdl_override_zlp_aware_host(struct qdl_device *qdl, bool zlp_aware_host)
+{
+	if (qdl->dev_type == QDL_DEVICE_AUTO &&
+	    auto_supports_zlp_aware_host_override(qdl)) {
+		auto_override_zlp_aware_host(qdl, zlp_aware_host);
+		qdl->zlp_aware_host = zlp_aware_host;
+	} else if (qdl->dev_type == QDL_DEVICE_USB &&
+		 usb_supports_zlp_aware_host_override())
+		qdl->zlp_aware_host = zlp_aware_host;
+	else if (qdl->dev_type == QDL_DEVICE_QUD &&
+		 qud_supports_zlp_aware_host_override())
+		qdl->zlp_aware_host = zlp_aware_host;
+	else if (qdl->dev_type == QDL_DEVICE_SIM &&
+		 sim_supports_zlp_aware_host_override())
+		qdl->zlp_aware_host = zlp_aware_host;
+}
+
 int qdl_open(struct qdl_device *qdl, const char *serial)
 {
 	return qdl->open(qdl, serial);

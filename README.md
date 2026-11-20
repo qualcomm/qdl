@@ -193,6 +193,10 @@ Other options that commonly matter when flashing:
   makes reflashing an unchanged build much faster.
 - `--skip-reset` leaves the device in EDL mode after flashing instead of
   sending the final reset.
+- `--no-zlp-aware-host` clears `ZlpAwareHost` in the Firehose configure
+  request and disables QDL's explicit zero-length OUT packet on the libusb
+  backend. With the QUD backend, QDL writes through the QDLoader driver; any
+  wire-level ZLP behavior there is driver-defined.
 - `--finalize-provisioning` is required, together with a matching UFS
   provisioning XML, to perform irreversible UFS provisioning.
 
