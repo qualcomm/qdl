@@ -34,6 +34,7 @@ static void auto_bind_inner(struct qdl_device_auto *wrap, struct qdl_device *inn
 {
 	wrap->inner = inner;
 	wrap->base.max_payload_size = inner->max_payload_size;
+	wrap->base.zlp_aware_host = inner->zlp_aware_host;
 	if (wrap->chunk_size_set)
 		inner->set_out_chunk_size(inner, wrap->pending_chunk_size);
 }
@@ -146,6 +147,31 @@ static void auto_set_out_chunk_size(struct qdl_device *qdl, long size)
 	wrap->chunk_size_set = true;
 }
 
+bool auto_supports_zlp_aware_host_override(struct qdl_device *qdl)
+{
+	struct qdl_device_auto *wrap = to_auto(qdl);
+	struct qdl_device *inner = wrap->inner;
+
+	if (!inner)
+		return false;
+
+	if (inner->dev_type == QDL_DEVICE_USB)
+		return usb_supports_zlp_aware_host_override();
+	if (inner->dev_type == QDL_DEVICE_QUD)
+		return qud_supports_zlp_aware_host_override();
+	if (inner->dev_type == QDL_DEVICE_SIM)
+		return sim_supports_zlp_aware_host_override();
+
+	return false;
+}
+
+void auto_override_zlp_aware_host(struct qdl_device *qdl, bool zlp_aware_host)
+{
+	struct qdl_device_auto *wrap = to_auto(qdl);
+
+	qdl_override_zlp_aware_host(wrap->inner, zlp_aware_host);
+}
+
 struct qdl_device *auto_init(void)
 {
 	struct qdl_device_auto *wrap = calloc(1, sizeof(*wrap));
@@ -160,6 +186,7 @@ struct qdl_device *auto_init(void)
 	wrap->base.close = auto_close;
 	wrap->base.set_out_chunk_size = auto_set_out_chunk_size;
 	wrap->base.max_payload_size = 1048576;
+	wrap->base.zlp_aware_host = true;
 
 	return &wrap->base;
 }

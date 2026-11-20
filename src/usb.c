@@ -33,7 +33,6 @@
 #include <strings.h>
 #include <unistd.h>
 #include <libusb.h>
-#include "oscompat.h"
 
 #include "qdl.h"
 
@@ -583,7 +582,6 @@ static int usb_read(struct qdl_device *qdl, void *buf, size_t len, unsigned int 
 
 	qdl_usb->expect_zlp = actual > 0 && len == (size_t)actual &&
 			      !(actual % qdl_usb->in_maxpktsize);
-
 	return actual;
 }
 
@@ -614,7 +612,7 @@ static int usb_write(struct qdl_device *qdl, const void *buf, size_t len, unsign
 		data += actual;
 	}
 
-	if (len_orig % qdl_usb->out_maxpktsize == 0) {
+	if (qdl->zlp_aware_host && len_orig % qdl_usb->out_maxpktsize == 0) {
 		ret = libusb_bulk_transfer(qdl_usb->usb_handle, qdl_usb->out_ep, NULL,
 					   0, &actual, timeout);
 		if (ret < 0)
@@ -631,6 +629,11 @@ static void usb_set_out_chunk_size(struct qdl_device *qdl, long size)
 	qdl_usb->out_chunk_size = size;
 }
 
+bool usb_supports_zlp_aware_host_override(void)
+{
+	return true;
+}
+
 struct qdl_device *usb_init(void)
 {
 	struct qdl_device *qdl = malloc(sizeof(struct qdl_device_usb));
@@ -641,6 +644,7 @@ struct qdl_device *usb_init(void)
 	memset(qdl, 0, sizeof(struct qdl_device_usb));
 
 	qdl->dev_type = QDL_DEVICE_USB;
+	qdl->zlp_aware_host = true;
 	qdl->open = usb_open;
 	qdl->read = usb_read;
 	qdl->write = usb_write;

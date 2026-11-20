@@ -42,6 +42,11 @@
 #include "qdl.h"
 #include "oscompat.h"
 
+bool qud_supports_zlp_aware_host_override(void)
+{
+	return false;
+}
+
 #ifdef _WIN32
 
 #define QCOM_HWID_PREFIX	"USB\\VID_05C6&PID_"
@@ -543,6 +548,7 @@ struct qdl_device *qud_init(void)
 	qd->base.close = qud_close;
 	qd->base.set_out_chunk_size = qud_set_out_chunk_size;
 	qd->base.max_payload_size = 1048576;
+	qd->base.zlp_aware_host = true;
 
 	return &qd->base;
 }

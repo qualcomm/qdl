@@ -97,6 +97,7 @@ static void test_defaults(void **state)
 	assert_false(o.allow_fusing);
 	assert_false(o.finalize_provisioning);
 	assert_false(o.skip_reset);
+	assert_true(o.zlp_aware_host);
 	assert_int_equal(o.out_chunk_size, 0);
 }
 
@@ -118,10 +119,11 @@ static void test_storage_and_backend(void **state)
 	assert_int_equal(o.dev_type, QDL_DEVICE_USB);
 }
 
-static void test_dry_run_and_skipblock(void **state)
+static void test_dry_run_skipblock_and_zlp(void **state)
 {
 	static const char *const dry[] = { "qdl", "-n", "prog", "f", NULL };
 	static const char *const skip[] = { "qdl", "--skipblock", "sha256", "prog", "f", NULL };
+	static const char *const zlp[] = { "qdl", "--no-zlp-aware-host", "prog", "f", NULL };
 	static const char *const both[] = { "qdl", "-n", "--backend", "usb", "prog", "f", NULL };
 	struct qdl_opts o;
 	(void)state;
@@ -131,6 +133,9 @@ static void test_dry_run_and_skipblock(void **state)
 
 	assert_int_equal(parse(&o, skip), QDL_ARGS_OK);
 	assert_int_equal(o.skipblock_mode, QDL_SKIPBLOCK_SHA256);
+
+	assert_int_equal(parse(&o, zlp), QDL_ARGS_OK);
+	assert_false(o.zlp_aware_host);
 
 	/* --dry-run pins the backend; a later --backend is ignored. */
 	assert_int_equal(parse(&o, both), QDL_ARGS_OK);
@@ -295,7 +300,7 @@ int main(void)
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test(test_defaults),
 		cmocka_unit_test(test_storage_and_backend),
-		cmocka_unit_test(test_dry_run_and_skipblock),
+		cmocka_unit_test(test_dry_run_skipblock_and_zlp),
 		cmocka_unit_test(test_flags_and_values),
 		cmocka_unit_test(test_help_version_and_usage),
 		cmocka_unit_test(test_quiet),

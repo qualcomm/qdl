@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "qdl.h"
-#include "oscompat.h"
 #include "cli.h"
 #include "version.h"
 
@@ -57,6 +56,8 @@ void print_usage(FILE *out)
 	usage_opt(out, " ", "-R, --skip-reset",
 		  "\t\tDo not send the reset command after flashing completes");
 	usage_opt(out, "     ", "--backend=B", "\t\tSelect device backend B: <auto|usb|qud> (default: auto)");
+	usage_opt(out, "     ", "--no-zlp-aware-host",
+		  "\tMark the USB host as not zero-length-packet aware");
 	usage_opt(out, "     ", "--skipblock=M",
 		  "\t\tUse readback mechanism M to skip <program> entries already on flash;");
 	fprintf(out, "                 \t\tM: <none|sha256> (default: none)\n");
@@ -163,6 +164,7 @@ int qdl_parse_args(int argc, char **argv, struct qdl_opts *opts)
 		{"skip-reset", no_argument, 0, 'R'},
 		{"quiet", no_argument, 0, 'q'},
 		{"backend", required_argument, 0, OPT_BACKEND},
+		{"no-zlp-aware-host", no_argument, 0, OPT_NO_ZLP_AWARE_HOST},
 		{"skipblock", required_argument, 0, OPT_SKIPBLOCK},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
@@ -174,6 +176,7 @@ int qdl_parse_args(int argc, char **argv, struct qdl_opts *opts)
 		.dev_type = QDL_DEVICE_AUTO,
 		.skipblock_mode = QDL_SKIPBLOCK_NONE,
 		.slot = UINT_MAX,
+		.zlp_aware_host = true,
 	};
 
 	while ((opt = getopt_long(argc, argv, "dvi:lu:S:D:s:fcnt:T:Rqh", options, NULL)) != -1) {
@@ -235,6 +238,9 @@ int qdl_parse_args(int argc, char **argv, struct qdl_opts *opts)
 			if (opts->dev_type != QDL_DEVICE_SIM &&
 			    decode_backend(optarg, &opts->dev_type) < 0)
 				ux_diex(1, "unknown backend \"%s\" (expected auto|usb|qud)", optarg);
+			break;
+		case OPT_NO_ZLP_AWARE_HOST:
+			opts->zlp_aware_host = false;
 			break;
 		case OPT_SKIPBLOCK:
 			if (!strcmp(optarg, "none"))
