@@ -2180,7 +2180,10 @@ static bool firehose_storage_info_scan(const char *s, size_t len,
 
 /*
  * The programmer answers <getstorageinfo> with the storage geometry encoded as
- * a JSON blob inside a <log> value. Pick out the block size and block count.
+ * a JSON blob or a key-value pair, inside a <log> value. Pick out the
+ * block size and/or block count. In the key-value pair case, the programmer
+ * answers with multiple <data> nodes, and this function will be called
+ * multiple times to parse all geometry information.
  */
 static int firehose_getstorageinfo_parser(xmlNode *node, void *data,
 					  bool *rawmode __unused)
@@ -2224,6 +2227,10 @@ static int firehose_getstorageinfo_parser(xmlNode *node, void *data,
 			firehose_storage_info_scan(start, len, &args->num_sectors,
 						   &args->sector_size);
 		}
+	} else if (xmlStrncmp(value, (xmlChar *)"num_partition_sectors=", 22) == 0) {
+		args->num_sectors = strtoull((char *)value + 22, NULL, 10);
+	} else if (xmlStrncmp(value, (xmlChar *)"SECTOR_SIZE_IN_BYTES=", 21) == 0) {
+		args->sector_size = strtoull((char *)value + 21, NULL, 10);
 	} else {
 		ux_debug_tag(UX_TAG_FIREHOSE, "LOG: %s\n", value);
 	}
