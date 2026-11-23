@@ -123,7 +123,7 @@ static void test_storage_type_roundtrip(void **state)
 {
 	const enum qdl_storage_type types[] = {
 		QDL_STORAGE_EMMC, QDL_STORAGE_NAND, QDL_STORAGE_UFS,
-		QDL_STORAGE_NVME, QDL_STORAGE_SPINOR,
+		QDL_STORAGE_NVME, QDL_STORAGE_SPINOR, QDL_STORAGE_SATA,
 	};
 	size_t i;
 	(void)state;
@@ -131,10 +131,12 @@ static void test_storage_type_roundtrip(void **state)
 	assert_int_equal(decode_storage_type("emmc"), QDL_STORAGE_EMMC);
 	assert_int_equal(decode_storage_type("ufs"), QDL_STORAGE_UFS);
 	assert_int_equal(decode_storage_type("nvme"), QDL_STORAGE_NVME);
+	assert_int_equal(decode_storage_type("sata"), QDL_STORAGE_SATA);
 	assert_int_equal(decode_storage_type("bogus"), QDL_STORAGE_UNKNOWN);
 	assert_int_equal(decode_storage_type(NULL), QDL_STORAGE_UNKNOWN);
 
 	assert_string_equal(encode_storage_type(QDL_STORAGE_UFS), "ufs");
+	assert_string_equal(encode_storage_type(QDL_STORAGE_SATA), "sata");
 	assert_null(encode_storage_type((enum qdl_storage_type)999));
 
 	for (i = 0; i < ARRAY_SIZE(types); i++)

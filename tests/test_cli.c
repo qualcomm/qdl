@@ -193,6 +193,7 @@ static void test_storage_and_backend(void **state)
 {
 	static const char *const emmc[] = { "qdl", "-s", "emmc", "prog", "f", NULL };
 	static const char *const nvme[] = { "qdl", "--storage", "nvme", "prog", "f", NULL };
+	static const char *const sata[] = { "qdl", "--storage", "sata", "prog", "f", NULL };
 	static const char *const usb[] = { "qdl", "--backend", "usb", "prog", "f", NULL };
 	struct qdl_opts o;
 	(void)state;
@@ -202,6 +203,9 @@ static void test_storage_and_backend(void **state)
 
 	assert_int_equal(parse(&o, nvme), QDL_ARGS_OK);
 	assert_int_equal(o.storage_type, QDL_STORAGE_NVME);
+
+	assert_int_equal(parse(&o, sata), QDL_ARGS_OK);
+	assert_int_equal(o.storage_type, QDL_STORAGE_SATA);
 
 	assert_int_equal(parse(&o, usb), QDL_ARGS_OK);
 	assert_int_equal(o.dev_type, QDL_DEVICE_USB);
