@@ -543,6 +543,7 @@ struct qdl_device *qud_init(void)
 	qd->base.close = qud_close;
 	qd->base.set_out_chunk_size = qud_set_out_chunk_size;
 	qd->base.max_payload_size = 1048576;
+	qd->base.zlp_aware_host = true;
 
 	return &qd->base;
 }

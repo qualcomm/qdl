@@ -33,7 +33,6 @@
 #include <strings.h>
 #include <unistd.h>
 #include <libusb.h>
-#include "oscompat.h"
 
 #include "qdl.h"
 
@@ -614,7 +613,7 @@ static int usb_write(struct qdl_device *qdl, const void *buf, size_t len, unsign
 		data += actual;
 	}
 
-	if (len_orig % qdl_usb->out_maxpktsize == 0) {
+	if (qdl->zlp_aware_host && len_orig % qdl_usb->out_maxpktsize == 0) {
 		ret = libusb_bulk_transfer(qdl_usb->usb_handle, qdl_usb->out_ep, NULL,
 					   0, &actual, timeout);
 		if (ret < 0)
@@ -641,6 +640,7 @@ struct qdl_device *usb_init(void)
 	memset(qdl, 0, sizeof(struct qdl_device_usb));
 
 	qdl->dev_type = QDL_DEVICE_USB;
+	qdl->zlp_aware_host = true;
 	qdl->open = usb_open;
 	qdl->read = usb_read;
 	qdl->write = usb_write;

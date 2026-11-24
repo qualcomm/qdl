@@ -840,6 +840,7 @@ static int qdl_flash(int argc, char **argv)
 
 	qdl->slot = opts.slot;
 	qdl->skipblock_mode = opts.skipblock_mode;
+	qdl->zlp_aware_host = opts.zlp_aware_host;
 
 	if (opts.vip_table_path) {
 		if (opts.vip_generate_dir)
@@ -890,6 +891,9 @@ static int qdl_flash(int argc, char **argv)
 	ret = qdl_open(qdl, opts.serial);
 	if (ret)
 		goto out_cleanup;
+
+	if (!opts.zlp_aware_host && qdl->dev_type == QDL_DEVICE_QUD)
+		ux_diex(1, "--no-zlp-aware-host is not supported with the QUD backend");
 
 	ret = sahara_run(qdl, sahara_images, NULL, NULL);
 	if (ret < 0)

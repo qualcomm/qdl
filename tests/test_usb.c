@@ -2,7 +2,7 @@
 /*
  * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
-/* Unit tests for USB bulk-IN ZLP handling and serial discovery. */
+/* Unit tests for USB bulk ZLP handling and serial discovery. */
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -117,8 +117,12 @@ static void set_transfers(const struct mock_transfer *values, size_t count)
 static void init_usb(struct qdl_device_usb *usb)
 {
 	memset(usb, 0, sizeof(*usb));
+	usb->base.zlp_aware_host = true;
 	usb->in_ep = 0x81;
 	usb->in_maxpktsize = 512;
+	usb->out_ep = 0x02;
+	usb->out_maxpktsize = 512;
+	usb->out_chunk_size = 1048576;
 }
 
 static void test_zlp_consumed_by_next_read(void **state)
@@ -227,6 +231,59 @@ static void test_error_clears_zlp_state(void **state)
 	set_transfers(io_error, ARRAY_SIZE(io_error));
 	assert_int_equal(usb_read(&usb.base, buf, sizeof(buf), 1000), -EIO);
 	assert_false(usb.expect_zlp);
+}
+
+static void test_aligned_write_sends_zlp_by_default(void **state)
+{
+	const struct mock_transfer write[] = {
+		{ 0, 512, NULL },
+		{ 0, 0, NULL },
+	};
+	struct qdl_device_usb usb;
+	char buf[512];
+
+	(void)state;
+	init_usb(&usb);
+	set_transfers(write, ARRAY_SIZE(write));
+	assert_int_equal(usb_write(&usb.base, buf, sizeof(buf), 1000), 512);
+	assert_int_equal(transfer_index, 2);
+}
+
+static void test_aligned_write_skips_zlp_when_disabled(void **state)
+{
+	const struct mock_transfer write[] = {
+		{ 0, 512, NULL },
+	};
+	struct qdl_device_usb usb;
+	char buf[512];
+
+	(void)state;
+	init_usb(&usb);
+	usb.base.zlp_aware_host = false;
+	set_transfers(write, ARRAY_SIZE(write));
+	assert_int_equal(usb_write(&usb.base, buf, sizeof(buf), 1000), 512);
+	assert_int_equal(transfer_index, 1);
+}
+
+static void test_unaligned_write_skips_zlp(void **state)
+{
+	const struct mock_transfer write[] = {
+		{ 0, 511, NULL },
+	};
+	struct qdl_device_usb usb;
+	char buf[511] = {};
+
+	(void)state;
+	init_usb(&usb);
+	set_transfers(write, ARRAY_SIZE(write));
+	assert_int_equal(usb_write(&usb.base, buf, sizeof(buf), 1000), 511);
+	assert_int_equal(transfer_index, 1);
+
+	init_usb(&usb);
+	usb.base.zlp_aware_host = false;
+	set_transfers(write, ARRAY_SIZE(write));
+	assert_int_equal(usb_write(&usb.base, buf, sizeof(buf), 1000), 511);
+	assert_int_equal(transfer_index, 1);
 }
 
 static const struct libusb_device_descriptor edl_desc = {
@@ -387,6 +444,9 @@ int main(void)
 		cmocka_unit_test(test_zlp_timeout_preserves_state),
 		cmocka_unit_test(test_partial_timeout_returns_data),
 		cmocka_unit_test(test_error_clears_zlp_state),
+		cmocka_unit_test(test_aligned_write_sends_zlp_by_default),
+		cmocka_unit_test(test_aligned_write_skips_zlp_when_disabled),
+		cmocka_unit_test(test_unaligned_write_skips_zlp),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);

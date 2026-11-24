@@ -15,6 +15,7 @@ enum {
 	OPT_BACKEND = 0x100,
 	OPT_SKIPBLOCK,
 	OPT_SERIAL,
+	OPT_NO_ZLP_AWARE_HOST,
 };
 
 /* Command-line options and flags for a flashing run. */
@@ -32,6 +33,7 @@ struct qdl_opts {
 	bool allow_fusing;
 	bool allow_missing;
 	bool skip_reset;
+	bool zlp_aware_host;
 };
 
 /* Result of qdl_parse_args(). */

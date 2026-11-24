@@ -37,6 +37,7 @@ trap cleanup EXIT
 QDL_PATH=$builddir
 VIP_PATH=${FLAT_BUILD}/vip
 EXPECTED_DIGEST="3ca3c745c7bf60d9f51626ad819dce1e14788bc094c258da6656b0a469afbf15"
+EXPECTED_NO_ZLP_DIGEST="c71de6b67a62b1bd1b1a3d959e9ef6fd5b726d314cfb8b92492ec78db16ce43a"
 VIP_TABLE_FILE=${VIP_PATH}/DigestsToSign.bin
 
 uname_out="$(uname -s)"
@@ -70,6 +71,20 @@ fi
 actual_digest=`${shacmd} "${VIP_TABLE_FILE}" | cut -d ' ' -f1`
 if [ "$actual_digest" != "${EXPECTED_DIGEST}" ]; then
 	echo "Expected SHA256 digest of ${VIP_TABLE_FILE} file is ${EXPECTED_DIGEST}"
+	echo "Calculated SHA256 digest of ${VIP_TABLE_FILE} file is $actual_digest"
+	echo "VIP table folder contents:"
+	ls -la ${VIP_PATH}
+	exit 1
+fi
+
+rm -r ${VIP_PATH}/*.bin
+
+${QDL_PATH}/${QDL} --dry-run --no-zlp-aware-host --create-digests=${VIP_PATH} \
+	prog_firehose_ddr.elf rawprogram*.xml patch*.xml
+
+actual_digest=`${shacmd} "${VIP_TABLE_FILE}" | cut -d ' ' -f1`
+if [ "$actual_digest" != "${EXPECTED_NO_ZLP_DIGEST}" ]; then
+	echo "Expected SHA256 digest of ${VIP_TABLE_FILE} file is ${EXPECTED_NO_ZLP_DIGEST}"
 	echo "Calculated SHA256 digest of ${VIP_TABLE_FILE} file is $actual_digest"
 	echo "VIP table folder contents:"
 	ls -la ${VIP_PATH}

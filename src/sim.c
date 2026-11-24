@@ -10,7 +10,6 @@
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
-#include "oscompat.h"
 #include "sha2.h"
 #include "sim.h"
 
@@ -646,6 +645,7 @@ struct qdl_device *sim_init(void)
 	qdl->close = sim_close;
 	qdl->set_out_chunk_size = sim_set_out_chunk_size;
 	qdl->max_payload_size = 1048576;
+	qdl->zlp_aware_host = true;
 	/*
 	 * Pre-set a non-zero sector size so that firehose_try_configure()
 	 * skips the sector-size probe reads. Those probe commands would
